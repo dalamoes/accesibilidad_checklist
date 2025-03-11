@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filters = document.querySelector('.filters');
     
     let checklistData = [];
+    let originalExcelData = null;
     const STORAGE_KEY = 'accessibilityChecklist';
 
     // Función para guardar el estado completo
@@ -51,70 +52,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
-    // Función para exportar el progreso
+    // Función para exportar el progreso como Excel
     function exportarProgreso() {
-        const progress = {};
-        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
-            if (checkbox.checked) {
-                progress[checkbox.id] = true;
-            }
+        if (!originalExcelData || !checklistData) {
+            alert('No hay datos para exportar');
+            return;
+        }
+
+        // Crear una copia de los datos originales
+        const excelData = originalExcelData.map(row => ({...row}));
+
+        // Añadir columna de estado
+        excelData.forEach(row => {
+            const item = findItemByCriterio(row.Criterio);
+            row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
         });
 
-        const data = {
-            checklistData,
-            progress,
-            exportDate: new Date().toISOString()
-        };
+        // Crear un nuevo libro de Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
 
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'checklist-progress.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // Añadir la hoja al libro
+        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
+
+        // Generar nombre del archivo con _TEMP
+        const originalName = fileName.textContent;
+        const newName = originalName.replace('.xlsx', '_TEMP.xlsx');
+
+        // Guardar el archivo
+        XLSX.writeFile(wb, newName);
     }
 
-    // Función para importar el progreso
-    async function importarProgreso(file) {
-        try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            
-            if (data.checklistData && data.progress) {
-                checklistData = data.checklistData;
-                
-                // Limpiar localStorage actual
-                const keysToKeep = new Set(Object.keys(data.progress));
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (!keysToKeep.has(key) && key !== STORAGE_KEY) {
-                        localStorage.removeItem(key);
-                    }
-                }
-                
-                // Restaurar progreso
-                Object.entries(data.progress).forEach(([key, value]) => {
-                    localStorage.setItem(key, value);
-                });
-                
-                initialMessage.style.display = 'none';
-                checklistContent.style.display = 'block';
-                filters.style.display = 'flex';
-                
-                cargarFiltros();
-                renderizarChecklist();
-                
-                saveState();
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Error al importar:', error);
-            return false;
+    // Función auxiliar para encontrar un item por criterio
+    function findItemByCriterio(criterio) {
+        for (const grupo of checklistData) {
+            const item = grupo.items.find(i => i.criterio === criterio);
+            if (item) return item;
         }
+        return null;
     }
 
     // Procesar archivo Excel
@@ -122,7 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        fileName.textContent = file.name;
+        // Comprobar si existe versión _TEMP
+        const baseName = file.name.replace('.xlsx', '');
+        const tempName = `${baseName}_TEMP.xlsx`;
         
         try {
             const data = await file.arrayBuffer();
@@ -130,6 +107,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+            // Guardar datos originales
+            originalExcelData = jsonData;
+
+            // Si hay columna Checked, restaurar estado
+            if (jsonData[0] && 'Checked' in jsonData[0]) {
+                jsonData.forEach(row => {
+                    if (row.Checked === 'X') {
+                        localStorage.setItem(row.Criterio, 'true');
+                    } else {
+                        localStorage.setItem(row.Criterio, 'false');
+                    }
+                });
+            }
+
+            fileName.textContent = file.name;
+            
             // Procesar datos y agrupar por tipo
             checklistData = procesarDatosExcel(jsonData);
             
@@ -328,34 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
     actionButtons.style.cssText = 'margin-top: 1rem; display: flex; gap: 1rem;';
 
     const exportButton = document.createElement('button');
-    exportButton.textContent = 'Exportar Progreso';
+    exportButton.textContent = 'Guardar Excel con Progreso';
     exportButton.className = 'action-button';
     exportButton.addEventListener('click', exportarProgreso);
 
-    const importLabel = document.createElement('label');
-    importLabel.className = 'action-button';
-    importLabel.textContent = 'Importar Progreso';
-    importLabel.style.cursor = 'pointer';
-
-    const importInput = document.createElement('input');
-    importInput.type = 'file';
-    importInput.accept = '.json';
-    importInput.style.display = 'none';
-    importInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const success = await importarProgreso(file);
-            if (success) {
-                alert('Progreso importado correctamente');
-            } else {
-                alert('Error al importar el progreso. Verifica el formato del archivo.');
-            }
-        }
-    });
-
-    importLabel.appendChild(importInput);
     actionButtons.appendChild(exportButton);
-    actionButtons.appendChild(importLabel);
     document.querySelector('header').appendChild(actionButtons);
 
     // Intentar cargar el estado guardado al iniciar
