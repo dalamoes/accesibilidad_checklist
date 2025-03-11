@@ -137,46 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Función para exportar el progreso como Excel
-    function exportarProgreso() {
-        if (!originalExcelData || !checklistData) {
-            alert('No hay datos para exportar');
-            return;
-        }
-
-        // Crear una copia de los datos originales
-        const excelData = originalExcelData.map(row => ({...row}));
-
-        // Añadir columna de estado
-        excelData.forEach(row => {
-            const item = findItemByCriterio(row.Criterio);
-            row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
-        });
-
-        // Crear un nuevo libro de Excel
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
-
-        // Añadir la hoja al libro
-        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
-
-        // Generar nombre del archivo con _TEMP
-        const originalName = fileName.textContent;
-        const newName = originalName.replace('.xlsx', '_TEMP.xlsx');
-
-        // Guardar el archivo
-        XLSX.writeFile(wb, newName);
-    }
-
-    // Función auxiliar para encontrar un item por criterio
-    function findItemByCriterio(criterio) {
-        for (const grupo of checklistData) {
-            const item = grupo.items.find(i => i.criterio === criterio);
-            if (item) return item;
-        }
-        return null;
-    }
-
     // Procesar datos del Excel y agrupar por tipo
     function procesarDatosExcel(jsonData) {
         const groupedData = {};
