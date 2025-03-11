@@ -91,7 +91,7 @@ function guardarProgreso() {
                             alert('No hay datos para guardar');
                             return;
                         }
-                    
+
                         try {
                             // Crear una copia de los datos originales
                             const excelData = originalExcelData.map(row => ({...row}));
