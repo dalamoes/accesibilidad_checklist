@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let checklistData = [];
     let originalExcelData = null;
+    let originalFile = null;
     const STORAGE_KEY = 'accessibilityChecklist';
 
     // Función para guardar el estado completo
@@ -52,44 +53,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
-    // Función para exportar el progreso como Excel
-    function exportarProgreso() {
-        if (!originalExcelData || !checklistData) {
-            alert('No hay datos para exportar');
+    // Función para guardar el progreso en Excel
+    function guardarProgreso() {
+        if (!originalExcelData || !checklistData || !originalFile) {
+            alert('No hay datos para guardar');
             return;
         }
 
-        // Crear una copia de los datos originales
-        const excelData = originalExcelData.map(row => ({...row}));
+        try {
+            // Crear una copia de los datos originales
+            const excelData = originalExcelData.map(row => ({...row}));
 
-        // Añadir columna de estado
-        excelData.forEach(row => {
-            const item = findItemByCriterio(row.Criterio);
-            row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
-        });
+            // Añadir columna de estado
+            excelData.forEach(row => {
+                row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
+            });
 
-        // Crear un nuevo libro de Excel
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
+            // Crear un nuevo libro de Excel
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
 
-        // Añadir la hoja al libro
-        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
+            // Añadir la hoja al libro
+            XLSX.utils.book_append_sheet(wb, ws, "Checklist");
 
-        // Generar nombre del archivo con _TEMP
-        const originalName = fileName.textContent;
-        const newName = originalName.replace('.xlsx', '_TEMP.xlsx');
+            // Generar nombre del archivo con _TEMP
+            const originalPath = originalFile.path || originalFile.name;
+            const newPath = originalPath.replace(/\.xlsx$/, '_TEMP.xlsx');
 
-        // Guardar el archivo
-        XLSX.writeFile(wb, newName);
-    }
-
-    // Función auxiliar para encontrar un item por criterio
-    function findItemByCriterio(criterio) {
-        for (const grupo of checklistData) {
-            const item = grupo.items.find(i => i.criterio === criterio);
-            if (item) return item;
+            // Guardar el archivo
+            XLSX.writeFile(wb, newPath);
+            alert('Archivo guardado como: ' + newPath);
+        } catch (error) {
+            console.error('Error al guardar:', error);
+            alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
         }
-        return null;
     }
 
     // Procesar archivo Excel
@@ -97,11 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Comprobar si existe versión _TEMP
-        const baseName = file.name.replace('.xlsx', '');
-        const tempName = `${baseName}_TEMP.xlsx`;
-        
         try {
+            originalFile = file;
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -142,6 +136,46 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Error al procesar el archivo Excel. Por favor, verifica el formato del archivo.');
         }
     });
+
+    // Función para exportar el progreso como Excel
+    function exportarProgreso() {
+        if (!originalExcelData || !checklistData) {
+            alert('No hay datos para exportar');
+            return;
+        }
+
+        // Crear una copia de los datos originales
+        const excelData = originalExcelData.map(row => ({...row}));
+
+        // Añadir columna de estado
+        excelData.forEach(row => {
+            const item = findItemByCriterio(row.Criterio);
+            row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
+        });
+
+        // Crear un nuevo libro de Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Añadir la hoja al libro
+        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
+
+        // Generar nombre del archivo con _TEMP
+        const originalName = fileName.textContent;
+        const newName = originalName.replace('.xlsx', '_TEMP.xlsx');
+
+        // Guardar el archivo
+        XLSX.writeFile(wb, newName);
+    }
+
+    // Función auxiliar para encontrar un item por criterio
+    function findItemByCriterio(criterio) {
+        for (const grupo of checklistData) {
+            const item = grupo.items.find(i => i.criterio === criterio);
+            if (item) return item;
+        }
+        return null;
+    }
 
     // Procesar datos del Excel y agrupar por tipo
     function procesarDatosExcel(jsonData) {
@@ -314,6 +348,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarChecklist(filterType.value, filterLevel.value);
         saveState();
     });
+
+    // Crear botón de guardar progreso
+    const actionButtons = document.createElement('div');
+    actionButtons.className = 'action-buttons';
+    actionButtons.style.cssText = 'margin-top: 1rem; display: flex; gap: 1rem;';
+
+    const saveButton = document.createElement('button');
+    saveButton.textContent = 'Guardar Progreso';
+    saveButton.className = 'action-button';
+    saveButton.addEventListener('click', guardarProgreso);
+
+    actionButtons.appendChild(saveButton);
+    document.querySelector('header').appendChild(actionButtons);
 
     // Intentar cargar el estado guardado al iniciar
     loadState();
