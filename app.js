@@ -1,4 +1,46 @@
-document.addEventListener('DOMContentLoaded', () => {
+// Función para guardar el progreso en Excel
+function guardarProgreso() {
+    if (!originalExcelData || !checklistData || !originalFile) {
+        alert('No hay datos para guardar');
+        return;
+    }
+
+    try {
+        // Crear una copia de los datos originales
+        const excelData = originalExcelData.map(row => ({...row}));
+
+        // Añadir columna de estado al inicio
+        excelData.forEach(row => {
+            row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
+        });
+
+        // Reorganizar las columnas para que "Checked" esté al inicio
+        const orderedData = excelData.map(row => {
+            const newRow = { Checked: row.Checked };
+            Object.keys(row).forEach(key => {
+                if (key !== 'Checked') {
+                    newRow[key] = row[key];
+                }
+            });
+            return newRow;
+        });
+
+        // Crear un nuevo libro de Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(orderedData);
+
+        // Añadir la hoja al libro
+        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
+
+        // Guardar sobrescribiendo el archivo original
+        const originalPath = originalFile.path || originalFile.name;
+        XLSX.writeFile(wb, originalPath);
+        alert('Archivo guardado correctamente');
+    } catch (error) {
+        console.error('Error al guardar:', error);
+        alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
+    }
+}document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('excelFile');
     const fileName = document.getElementById('fileName');
     const filterType = document.getElementById('filterType');
