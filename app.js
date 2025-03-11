@@ -315,19 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState();
     });
 
-    // Crear botones de exportar/importar
-    const actionButtons = document.createElement('div');
-    actionButtons.className = 'action-buttons';
-    actionButtons.style.cssText = 'margin-top: 1rem; display: flex; gap: 1rem;';
-
-    const exportButton = document.createElement('button');
-    exportButton.textContent = 'Guardar Excel con Progreso';
-    exportButton.className = 'action-button';
-    exportButton.addEventListener('click', exportarProgreso);
-
-    actionButtons.appendChild(exportButton);
-    document.querySelector('header').appendChild(actionButtons);
-
     // Intentar cargar el estado guardado al iniciar
     loadState();
 });
