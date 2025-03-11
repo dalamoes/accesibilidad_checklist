@@ -76,13 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Añadir la hoja al libro
             XLSX.utils.book_append_sheet(wb, ws, "Checklist");
 
-            // Generar nombre del archivo con _TEMP
+            // Guardar sobrescribiendo el archivo original
             const originalPath = originalFile.path || originalFile.name;
-            const newPath = originalPath.replace(/\.xlsx$/, '_TEMP.xlsx');
-
-            // Guardar el archivo
-            XLSX.writeFile(wb, newPath);
-            alert('Archivo guardado como: ' + newPath);
+            XLSX.writeFile(wb, originalPath);
+            alert('Archivo guardado correctamente');
         } catch (error) {
             console.error('Error al guardar:', error);
             alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
