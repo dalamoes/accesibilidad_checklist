@@ -118,10 +118,15 @@
             gap: 1rem;
             padding: 0.75rem;
             border-bottom: 1px solid #eee;
+            transition: background-color 0.3s ease;
         }
 
         .checklist-item:last-child {
             border-bottom: none;
+        }
+
+        .checklist-item.checked {
+            background-color: #e8f8e5;
         }
 
         .checklist-item input[type="checkbox"] {

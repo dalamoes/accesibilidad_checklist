@@ -130,6 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
             itemsFiltrados.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'checklist-item';
+                if (localStorage.getItem(item.criterio) === 'true') {
+                    itemDiv.classList.add('checked');
+                }
 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
@@ -182,17 +185,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentDiv.appendChild(metaDiv);
                 itemDiv.appendChild(contentDiv);
                 grupoDiv.appendChild(itemDiv);
+
+                // Añadir event listener para el checkbox
+                checkbox.addEventListener('change', (e) => {
+                    localStorage.setItem(e.target.id, e.target.checked);
+                    itemDiv.classList.toggle('checked', e.target.checked);
+                    actualizarProgreso();
+                });
             });
 
             checklistContainer.appendChild(grupoDiv);
-        });
-
-        // Añadir event listeners a los checkboxes
-        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                localStorage.setItem(e.target.id, e.target.checked);
-                actualizarProgreso();
-            });
         });
 
         actualizarProgreso();
