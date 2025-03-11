@@ -9,6 +9,113 @@ document.addEventListener('DOMContentLoaded', () => {
     const filters = document.querySelector('.filters');
     
     let checklistData = [];
+    const STORAGE_KEY = 'accessibilityChecklist';
+
+    // Función para guardar el estado completo
+    function saveState() {
+        const state = {
+            checklistData,
+            filters: {
+                type: filterType.value,
+                level: filterLevel.value
+            },
+            lastUpdate: new Date().toISOString()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // Función para cargar el estado guardado
+    function loadState() {
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            checklistData = state.checklistData;
+            
+            if (checklistData && checklistData.length > 0) {
+                initialMessage.style.display = 'none';
+                checklistContent.style.display = 'block';
+                filters.style.display = 'flex';
+                
+                cargarFiltros();
+                
+                // Restaurar filtros
+                if (state.filters) {
+                    filterType.value = state.filters.type;
+                    filterLevel.value = state.filters.level;
+                }
+                
+                renderizarChecklist(filterType.value, filterLevel.value);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Función para exportar el progreso
+    function exportarProgreso() {
+        const progress = {};
+        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
+            if (checkbox.checked) {
+                progress[checkbox.id] = true;
+            }
+        });
+
+        const data = {
+            checklistData,
+            progress,
+            exportDate: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'checklist-progress.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Función para importar el progreso
+    async function importarProgreso(file) {
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            if (data.checklistData && data.progress) {
+                checklistData = data.checklistData;
+                
+                // Limpiar localStorage actual
+                const keysToKeep = new Set(Object.keys(data.progress));
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (!keysToKeep.has(key) && key !== STORAGE_KEY) {
+                        localStorage.removeItem(key);
+                    }
+                }
+                
+                // Restaurar progreso
+                Object.entries(data.progress).forEach(([key, value]) => {
+                    localStorage.setItem(key, value);
+                });
+                
+                initialMessage.style.display = 'none';
+                checklistContent.style.display = 'block';
+                filters.style.display = 'flex';
+                
+                cargarFiltros();
+                renderizarChecklist();
+                
+                saveState();
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error al importar:', error);
+            return false;
+        }
+    }
 
     // Procesar archivo Excel
     fileInput.addEventListener('change', async (e) => {
@@ -34,6 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Cargar filtros y renderizar checklist
             cargarFiltros();
             renderizarChecklist();
+            
+            // Guardar estado
+            saveState();
         } catch (error) {
             console.error('Error al procesar el archivo:', error);
             alert('Error al procesar el archivo Excel. Por favor, verifica el formato del archivo.');
@@ -191,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem(e.target.id, e.target.checked);
                     itemDiv.classList.toggle('checked', e.target.checked);
                     actualizarProgreso();
+                    saveState();
                 });
             });
 
@@ -203,9 +314,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners para filtros
     filterType.addEventListener('change', () => {
         renderizarChecklist(filterType.value, filterLevel.value);
+        saveState();
     });
 
     filterLevel.addEventListener('change', () => {
         renderizarChecklist(filterType.value, filterLevel.value);
+        saveState();
     });
+
+    // Crear botones de exportar/importar
+    const actionButtons = document.createElement('div');
+    actionButtons.className = 'action-buttons';
+    actionButtons.style.cssText = 'margin-top: 1rem; display: flex; gap: 1rem;';
+
+    const exportButton = document.createElement('button');
+    exportButton.textContent = 'Exportar Progreso';
+    exportButton.className = 'action-button';
+    exportButton.addEventListener('click', exportarProgreso);
+
+    const importLabel = document.createElement('label');
+    importLabel.className = 'action-button';
+    importLabel.textContent = 'Importar Progreso';
+    importLabel.style.cursor = 'pointer';
+
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.accept = '.json';
+    importInput.style.display = 'none';
+    importInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const success = await importarProgreso(file);
+            if (success) {
+                alert('Progreso importado correctamente');
+            } else {
+                alert('Error al importar el progreso. Verifica el formato del archivo.');
+            }
+        }
+    });
+
+    importLabel.appendChild(importInput);
+    actionButtons.appendChild(exportButton);
+    actionButtons.appendChild(importLabel);
+    document.querySelector('header').appendChild(actionButtons);
+
+    // Intentar cargar el estado guardado al iniciar
+    loadState();
 });
