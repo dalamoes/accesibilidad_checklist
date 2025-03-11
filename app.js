@@ -85,7 +85,41 @@ function guardarProgreso() {
                 // Restaurar filtros
                 if (state.filters) {
                     filterType.value = state.filters.type;
-                    filterLevel.value = state.filters.level;
+                    filterLevel.value = state.filters.level;// Función para guardar el progreso en Excel
+                    function guardarProgreso() {
+                        if (!originalExcelData || !checklistData || !originalFile) {
+                            alert('No hay datos para guardar');
+                            return;
+                        }
+                    
+                        try {
+                            // Crear una copia de los datos originales
+                            const excelData = originalExcelData.map(row => ({...row}));
+                    
+                            // Añadir columna de estado
+                            excelData.forEach(row => {
+                                row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
+                            });
+                    
+                            // Crear un nuevo libro de Excel
+                            const wb = XLSX.utils.book_new();
+                            const ws = XLSX.utils.json_to_sheet(excelData);
+                    
+                            // Añadir la hoja al libro
+                            XLSX.utils.book_append_sheet(wb, ws, "Checklist");
+                    
+                            // Generar nombre del archivo con _TEMP
+                            const originalPath = originalFile.path || originalFile.name;
+                            const newPath = originalPath.replace(/\.xlsx$/, '_TEMP.xlsx');
+                    
+                            // Guardar el archivo
+                            XLSX.writeFile(wb, newPath);
+                            alert('Archivo guardado como: ' + newPath);
+                        } catch (error) {
+                            console.error('Error al guardar:', error);
+                            alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
+                        }
+                    }
                 }
                 
                 renderizarChecklist(filterType.value, filterLevel.value);
