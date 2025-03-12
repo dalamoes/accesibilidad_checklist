@@ -1,46 +1,4 @@
-// Función para guardar el progreso en Excel
-function guardarProgreso() {
-    if (!originalExcelData || !checklistData || !originalFile) {
-        alert('No hay datos para guardar');
-        return;
-    }
-
-    try {
-        // Crear una copia de los datos originales
-        const excelData = originalExcelData.map(row => ({...row}));
-
-        // Añadir columna de estado al inicio
-        excelData.forEach(row => {
-            row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
-        });
-
-        // Reorganizar las columnas para que "Checked" esté al inicio
-        const orderedData = excelData.map(row => {
-            const newRow = { Checked: row.Checked };
-            Object.keys(row).forEach(key => {
-                if (key !== 'Checked') {
-                    newRow[key] = row[key];
-                }
-            });
-            return newRow;
-        });
-
-        // Crear un nuevo libro de Excel
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(orderedData);
-
-        // Añadir la hoja al libro
-        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
-
-        // Guardar sobrescribiendo el archivo original
-        const originalPath = originalFile.path || originalFile.name;
-        XLSX.writeFile(wb, originalPath);
-        alert('Archivo guardado correctamente');
-    } catch (error) {
-        console.error('Error al guardar:', error);
-        alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
-    }
-}document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('excelFile');
     const fileName = document.getElementById('fileName');
     const filterType = document.getElementById('filterType');
@@ -84,88 +42,8 @@ function guardarProgreso() {
                 
                 // Restaurar filtros
                 if (state.filters) {
-// Función para guardar el progreso en Excel
-function guardarProgreso() {
-    if (!originalExcelData || !checklistData || !originalFile) {
-        alert('No hay datos para guardar');
-        return;
-    }
-
-    try {
-        // Crear una copia de los datos originales
-        const excelData = originalExcelData.map(row => ({...row}));
-
-        // Añadir columna de estado al inicio
-        excelData.forEach(row => {
-            const isChecked = checklistData.some(item => item.Criterio === row.Criterio && item.checked);
-            row.Checked = isChecked ? 'X' : '';
-        });
-
-        // Reorganizar las columnas para que "Checked" esté al inicio
-        const orderedData = excelData.map(row => {
-            const newRow = { Checked: row.Checked };
-            Object.keys(row).forEach(key => {
-                if (key !== 'Checked') {
-                    newRow[key] = row[key];
-                }
-            });
-            return newRow;
-        });
-
-        // Crear un nuevo libro de Excel
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(orderedData);
-
-        // Añadir la hoja al libro
-        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
-
-        // Generar nombre del archivo con _TEMP
-        const originalPath = originalFile.path || originalFile.name;
-        const newPath = originalPath.replace(/\.xlsx$/, '_TEMP.xlsx');
-
-        // Guardar el archivo
-        XLSX.writeFile(wb, newPath);
-        alert('Archivo guardado como: ' + newPath);
-    } catch (error) {
-        console.error('Error al guardar:', error);
-        alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
-    }
-}                    filterType.value = state.filters.type;
-                    filterLevel.value = state.filters.level;// Función para guardar el progreso en Excel
-                    function guardarProgreso() {
-                        if (!originalExcelData || !checklistData || !originalFile) {
-                            alert('No hay datos para guardar');
-                            return;
-                        }
-
-                        try {
-                            // Crear una copia de los datos originales
-                            const excelData = originalExcelData.map(row => ({...row}));
-                    
-                            // Añadir columna de estado
-                            excelData.forEach(row => {
-                                row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
-                            });
-                    
-                            // Crear un nuevo libro de Excel
-                            const wb = XLSX.utils.book_new();
-                            const ws = XLSX.utils.json_to_sheet(excelData);
-                    
-                            // Añadir la hoja al libro
-                            XLSX.utils.book_append_sheet(wb, ws, "Checklist");
-                    
-                            // Generar nombre del archivo con _TEMP
-                            const originalPath = originalFile.path || originalFile.name;
-                            const newPath = originalPath.replace(/\.xlsx$/, '_TEMP.xlsx');
-                    
-                            // Guardar el archivo
-                            XLSX.writeFile(wb, newPath);
-                            alert('Archivo guardado como: ' + newPath);
-                        } catch (error) {
-                            console.error('Error al guardar:', error);
-                            alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
-                        }
-                    }
+                    filterType.value = state.filters.type;
+                    filterLevel.value = state.filters.level;
                 }
                 
                 renderizarChecklist(filterType.value, filterLevel.value);
@@ -183,25 +61,45 @@ function guardarProgreso() {
         }
 
         try {
-            // Crear una copia de los datos originales
-            const excelData = originalExcelData.map(row => ({...row}));
-
-            // Añadir columna de estado
-            excelData.forEach(row => {
-                row.Checked = localStorage.getItem(row.Criterio) === 'true' ? 'X' : '';
+            const workbook = XLSX.utils.book_new();
+            const data = [];
+            const headers = ['Checked', 'Tipo', 'Título', 'Tipo validación', 'Herramienta', 'Equipos', 'Norma', 'Nivel', 'Criterio'];
+            
+            // Obtenemos todos los elementos checkbox en el DOM
+            const checkboxes = document.querySelectorAll('.checklist-item input[type="checkbox"]');
+            const checkedMap = {};
+            
+            // Creamos un mapa de los checkboxes marcados
+            checkboxes.forEach(checkbox => {
+                checkedMap[checkbox.id] = checkbox.checked;
             });
-
-            // Crear un nuevo libro de Excel
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(excelData);
-
-            // Añadir la hoja al libro
-            XLSX.utils.book_append_sheet(wb, ws, "Checklist");
-
-            // Guardar sobrescribiendo el archivo original
-            const originalPath = originalFile.path || originalFile.name;
-            XLSX.writeFile(wb, originalPath);
-            alert('Archivo guardado correctamente');
+            
+            // Para cada grupo e item, verificamos si su checkbox correspondiente está marcado
+            checklistData.forEach(grupo => {
+                grupo.items.forEach(item => {
+                    const rowData = {};
+                    // Usamos un ID único para cada fila
+                    const elementId = `item_${item.uniqueId}`;
+                    
+                    // Verificamos si este elemento específico está marcado
+                    rowData['Checked'] = checkedMap[elementId] ? 'X' : '';
+                    
+                    rowData['Tipo'] = grupo.tipo;
+                    rowData['Título'] = item.titulo;
+                    rowData['Tipo validación'] = item.tipoValidacion;
+                    rowData['Herramienta'] = item.herramienta;
+                    rowData['Equipos'] = item.equipos;
+                    rowData['Norma'] = item.norma;
+                    rowData['Nivel'] = item.nivel;
+                    rowData['Criterio'] = item.criterio;
+                    data.push(rowData);
+                });
+            });
+            
+            const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Progress');
+            XLSX.writeFile(workbook, 'progress.xlsx');
+            alert('Archivo guardado como: progress.xlsx');
         } catch (error) {
             console.error('Error al guardar:', error);
             alert('Error al guardar el archivo. Por favor, intenta de nuevo.');
@@ -223,21 +121,28 @@ function guardarProgreso() {
             // Guardar datos originales
             originalExcelData = jsonData;
 
+            // Limpiar localStorage primero para quitar checkboxes anteriores
+            clearCheckboxStorage();
+
+            // Asignar IDs únicos a cada fila
+            jsonData.forEach((row, index) => {
+                row.uniqueId = `row_${index}`;
+            });
+            
+            // Procesar datos y agrupar por tipo
+            checklistData = procesarDatosExcel(jsonData);
+            
             // Si hay columna Checked, restaurar estado
-            if (jsonData[0] && 'Checked' in jsonData[0]) {
+            if (jsonData[0] && ('Checked' in jsonData[0] || 'checked' in jsonData[0])) {
+                const checkedKey = 'Checked' in jsonData[0] ? 'Checked' : 'checked';
+                
                 jsonData.forEach(row => {
-                    if (row.Checked === 'X') {
-                        localStorage.setItem(row.Criterio, 'true');
-                    } else {
-                        localStorage.setItem(row.Criterio, 'false');
-                    }
+                    const isChecked = row[checkedKey] === 'X';
+                    localStorage.setItem(`item_${row.uniqueId}`, isChecked ? 'true' : 'false');
                 });
             }
 
             fileName.textContent = file.name;
-            
-            // Procesar datos y agrupar por tipo
-            checklistData = procesarDatosExcel(jsonData);
             
             // Mostrar la interfaz del checklist
             initialMessage.style.display = 'none';
@@ -256,10 +161,63 @@ function guardarProgreso() {
         }
     });
 
+    // Función para limpiar localStorage de checkboxes anteriores
+    function clearCheckboxStorage() {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('item_')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+    }
+
+    // Función para exportar el progreso como Excel
+    function exportarProgreso() {
+        if (!originalExcelData || !checklistData) {
+            alert('No hay datos para exportar');
+            return;
+        }
+
+        // Crear una copia de los datos originales
+        const excelData = originalExcelData.map(row => ({...row}));
+
+        // Crear un mapa de checkboxes marcados
+        const checkboxes = document.querySelectorAll('.checklist-item input[type="checkbox"]');
+        const checkedMap = {};
+        
+        checkboxes.forEach(checkbox => {
+            checkedMap[checkbox.id] = checkbox.checked;
+        });
+
+        // Marcar las filas activas con 'X'
+        let index = 0;
+        excelData.forEach(row => {
+            const uniqueId = `row_${index}`;
+            row.Checked = checkedMap[`item_${uniqueId}`] ? 'X' : '';
+            index++;
+        });
+
+        // Crear un nuevo libro de Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Añadir la hoja al libro
+        XLSX.utils.book_append_sheet(wb, ws, "Checklist");
+
+        // Generar nombre del archivo sin _TEMP
+        const originalName = fileName.textContent.replace('.xlsx', '');
+        const exportName = `${originalName}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+        // Guardar el archivo
+        XLSX.writeFile(wb, exportName);
+    }
+
     // Procesar datos del Excel y agrupar por tipo
     function procesarDatosExcel(jsonData) {
         const groupedData = {};
-
+        
         jsonData.forEach(row => {
             const tipo = row.Tipo || 'Sin categoría';
             if (!groupedData[tipo]) {
@@ -270,6 +228,7 @@ function guardarProgreso() {
             }
 
             groupedData[tipo].items.push({
+                uniqueId: row.uniqueId, // Usar el ID único ya asignado
                 titulo: row.Título || '',
                 tipoValidacion: row['Tipo validación'] || '',
                 herramienta: row.Herramienta || '',
@@ -314,7 +273,7 @@ function guardarProgreso() {
     // Actualizar progreso
     function actualizarProgreso() {
         const totalItems = document.querySelectorAll('.checklist-item').length;
-        const completedItems = document.querySelectorAll('.checklist-item input[type="checkbox"]:checked').length;
+        const completedItems = document.querySelectorAll('.checklist-item.checked').length;
         const progress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
         
         document.querySelector('.progress').style.width = `${progress}%`;
@@ -346,14 +305,18 @@ function guardarProgreso() {
             itemsFiltrados.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'checklist-item';
-                if (localStorage.getItem(item.criterio) === 'true') {
+                
+                // Usar el ID único para cada item
+                const itemId = `item_${item.uniqueId}`;
+                
+                if (localStorage.getItem(itemId) === 'true') {
                     itemDiv.classList.add('checked');
                 }
 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.id = item.criterio;
-                checkbox.checked = localStorage.getItem(item.criterio) === 'true';
+                checkbox.id = itemId; // Usar el ID único
+                checkbox.checked = localStorage.getItem(itemId) === 'true';
                 itemDiv.appendChild(checkbox);
 
                 const contentDiv = document.createElement('div');
